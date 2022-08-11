@@ -8,7 +8,7 @@
       - pipeline: buildContosoAir # identifier for the resource used in pipeline resource variables
         source: Student1-25019474.ContosoAir # name of the pipeline that produces the artifact
         trigger:
-        branches:
+         branches:
           include:
           - master
    steps:
