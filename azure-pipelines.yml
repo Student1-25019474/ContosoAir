@@ -1,20 +1,47 @@
    pool:
      vmImage: 'ubuntu-18.04'
    trigger:
-     - master
+     - none
+
+   resources:
+    pipelines:
+      - pipeline: buildContosoAir # identifier for the resource used in pipeline resource variables
+        source: Student1-25019474.ContosoAir # name of the pipeline that produces the artifact
+        trigger:
+        branches:
+          include:
+          - master
    steps:
-     - task: CopyFiles@2
-       displayName: 'Copy Files to: $(build.artifactstagingdirectory)/Templates'
+     - task: DownloadPipelineArtifact@2
        inputs:
-         SourceFolder: deployment
-         Contents: '*.json'
-         TargetFolder: '$(build.artifactstagingdirectory)/Templates'
-     - task: Npm@1
-       displayName: 'npm custom'
+         buildType: 'specific'
+         project: '40c0baf7-8a5c-4c1f-a18a-d365f08a10ae'
+         definition: '3'
+         buildVersionToDownload: 'latest'
+         targetPath: '$(Pipeline.Workspace)'
+
+     - task: AzureResourceManagerTemplateDeployment@3
        inputs:
-         command: custom
-         verbose: false
-         customCommand: 'install --production'
+        deploymentScope: 'Resource Group'
+        azureResourceManagerConnection: 'Azure Connection'
+        subscriptionId: 'cd5624ee-c42c-4f43-9c6d-4aea23072cf3'
+        action: 'Create Or Update Resource Group'
+        resourceGroupName: 'rg-lod25019474'
+        location: 'Central US'
+        templateLocation: 'Linked artifact'
+        csmFile: '$(Pipeline.Workspace)/drop/Templates/azuredeploy.json'
+        csmParametersFile: '$(Pipeline.Workspace)/drop/Templates/azuredeploy.parameters.json'
+        overrideParameters: '-p_environment $(web_environment) -p_site_prefix $(web_prefix) -p_site_web_name $(web_site)'
+        deploymentMode: 'Incremental'
+    
+     - task: AzureRmWebAppDeployment@4
+       inputs:
+          ConnectionType: 'AzureRM'
+          azureSubscription: 'Azure Connection'
+          appType: 'webApp'
+          WebAppName: '$(web_prefix)-$(web_site)-$(web_environment)'
+          packageForLinux: '$(Pipeline.Workspace)/**/*.zip'
+
      - task: ArchiveFiles@2
        displayName: 'Archive $(Build.SourcesDirectory)'
        inputs:
